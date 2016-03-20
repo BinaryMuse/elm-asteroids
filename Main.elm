@@ -9,28 +9,26 @@ import Text exposing (fromString)
 
 -- Game config
 
--- Set to True to stop immediately upon releaseing up key
-friction : Bool
-friction = False
+type alias GameOptions =
+  { friction: Bool -- if true, ship stops immediately
+  , acceleration: Float -- how quickly the ship can increase momentum
+  , bulletFireRate: Float -- how quickly the gun can fire
+  , bulletTtl: Float -- how long bullets last
+  , bulletMovementRate: Float -- how fast bulltes move
+  , turnRate: Float -- how qickly teh ship can turn
+  }
 
--- How fast the ship accelerates; is much higher with friction on
--- since the velocity doesn't increase over time
-acceleration : Float
-acceleration = if friction then 5 else 0.2
-
--- How often a bullet can be fired if the user holds down space
-bulletFireRate : Float
-bulletFireRate = 200
-
--- How long a bullet will be alive before it disappears
-bulletTimeAlive : Float
-bulletTimeAlive = 3000
-
-bulletMovementRate : Float
-bulletMovementRate = 0.5
-
-turnRate : Float
-turnRate = 0.005
+gameOptions =
+  let
+    friction = False
+  in
+    { friction = friction
+    , acceleration = if friction then 5 else 0.2
+    , bulletFireRate = 200
+    , bulletTtl = 3000
+    , bulletMovementRate = 0.5
+    , turnRate = 0.005
+    }
 
 
 -- Game data
@@ -57,30 +55,30 @@ model =
   { angle = 0
   , position = vec2 0 0
   , velocity = vec2 0 0
-  , deltaSinceLastBullet = bulletFireRate + 1
+  , deltaSinceLastBullet = gameOptions.bulletFireRate + 1
   , bullets = []
   }
 
 update : (Float, Keys, Bool) -> Model -> Model
 update (delta, keys, space) model =
   model
-    |> turning delta keys
-    |> movement delta keys
-    |> bullets delta space
+    |> turning delta gameOptions keys
+    |> movement delta gameOptions keys
+    |> bullets delta gameOptions space
 
-turning : Float -> Keys -> Model -> Model
-turning delta keys model =
+turning : Float -> GameOptions -> Keys -> Model -> Model
+turning delta gameOptions keys model =
   { model |
-    angle = model.angle - turnRate * delta * (toFloat keys.x)
+    angle = model.angle - gameOptions.turnRate * delta * (toFloat keys.x)
   }
 
-movement : Float -> Keys -> Model -> Model
-movement delta keys model =
+movement : Float -> GameOptions -> Keys -> Model -> Model
+movement delta gameOptions keys model =
   let
     keysY = max 0 (toFloat keys.y)
-    vector = getVectorFromAngle model.angle
-    newVelocity = vector
-      |> Vector2.scale (keysY * acceleration)
+    newVelocity = model.angle
+      |> getVectorFromAngle
+      |> Vector2.scale (keysY * gameOptions.acceleration)
       |> Vector2.add model.velocity
     newPosition = model.position
       |> Vector2.add newVelocity
@@ -88,29 +86,29 @@ movement delta keys model =
   in
     { model |
       position = newPosition
-    , velocity = if friction then model.velocity else newVelocity
+    , velocity = if gameOptions.friction then model.velocity else newVelocity
     }
 
-bullets : Float -> Bool -> Model -> Model
-bullets delta space model =
+bullets : Float -> GameOptions -> Bool -> Model -> Model
+bullets delta gameOptions space model =
   model
-    |> advanceBullets delta
-    |> fireBullet delta space
+    |> advanceBullets delta gameOptions
+    |> fireBullet delta gameOptions space
 
-advanceBullets : Float -> Model -> Model
-advanceBullets delta model =
+advanceBullets : Float -> GameOptions -> Model -> Model
+advanceBullets delta gameOptions model =
   { model |
     bullets = model.bullets
-                |> List.map (advanceBullet delta)
-                |> List.filter (\b -> b.timeAlive <= bulletTimeAlive)
+                |> List.map (advanceBullet delta gameOptions)
+                |> List.filter (\b -> b.timeAlive <= gameOptions.bulletTtl)
   }
 
-advanceBullet : Float -> Bullet -> Bullet
-advanceBullet delta bullet =
+advanceBullet : Float -> GameOptions -> Bullet -> Bullet
+advanceBullet delta gameOptions bullet =
   let
     newTimeAlive = bullet.timeAlive + delta
     vector = getVectorFromAngle bullet.angle
-    moved = Vector2.scale (bulletMovementRate * newTimeAlive) vector
+    moved = Vector2.scale (gameOptions.bulletMovementRate * newTimeAlive) vector
     finalPos = Vector2.add bullet.startPosition moved
   in
     { bullet |
@@ -118,9 +116,9 @@ advanceBullet delta bullet =
     , currentPosition = finalPos
     }
 
-fireBullet : Float -> Bool -> Model -> Model
-fireBullet delta space model =
-  if space && model.deltaSinceLastBullet + delta >= bulletFireRate then
+fireBullet : Float -> GameOptions -> Bool -> Model -> Model
+fireBullet delta gameOptions space model =
+  if space && model.deltaSinceLastBullet + delta >= gameOptions.bulletFireRate then
     let
       newBullet =
         { timeAlive = 0

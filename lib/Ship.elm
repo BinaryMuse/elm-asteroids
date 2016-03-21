@@ -86,30 +86,26 @@ advanceBullets delta gameOptions model =
 
 advanceBullet : Float -> GameOptions -> Bullet -> Bullet
 advanceBullet delta gameOptions bullet =
-  let
-    newPos = bullet.angle
+  { bullet |
+    timeAlive = bullet.timeAlive + delta
+  , position = bullet.angle
       |> Util.angleToVector
       |> Vector2.scale (gameOptions.bulletMovementRate * delta)
       |> Vector2.add bullet.position
-  in
-    { bullet |
-      timeAlive = bullet.timeAlive + delta
-    , position = newPos
-    }
+  }
 
 fireBullet : Float -> GameOptions -> Bool -> Model -> Model
 fireBullet delta gameOptions space model =
   if space && model.gunCooldownRemaining - delta <= 0 then
     let
-      newBullet =
+      bullet =
         { timeAlive = 0
         , angle = model.angle
         , position = model.position
         }
-      newBullets = newBullet :: model.bullets
     in
       { model |
-        bullets = newBullets
+        bullets = bullet :: model.bullets
       , gunCooldownRemaining = gameOptions.gunCooldownTime
       }
   else

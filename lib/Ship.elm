@@ -11,10 +11,9 @@ import GameConfig exposing (GameOptions, gameOptions)
 import Util exposing (angleToVector, wrapPosition, tileForm)
 
 type alias Bullet =
-  { timeAlive: Float
-  , angle: Float
-  , startPosition: Vec2
-  , currentPosition: Vec2
+  { timeAlive: Float -- how long since this bullet was fired
+  , angle: Float -- the angle of the ship at the time the bullet was fired
+  , position: Vec2 -- the location of the bullet
   }
 
 type alias Keys = { x: Int, y: Int }
@@ -88,14 +87,14 @@ advanceBullets delta gameOptions model =
 advanceBullet : Float -> GameOptions -> Bullet -> Bullet
 advanceBullet delta gameOptions bullet =
   let
-    newTimeAlive = bullet.timeAlive + delta
-    vector = angleToVector bullet.angle
-    moved = Vector2.scale (gameOptions.bulletMovementRate * newTimeAlive) vector
-    finalPos = Vector2.add bullet.startPosition moved
+    newPos = bullet.angle
+      |> Util.angleToVector
+      |> Vector2.scale (gameOptions.bulletMovementRate * delta)
+      |> Vector2.add bullet.position
   in
     { bullet |
-      timeAlive = newTimeAlive
-    , currentPosition = finalPos
+      timeAlive = bullet.timeAlive + delta
+    , position = newPos
     }
 
 fireBullet : Float -> GameOptions -> Bool -> Model -> Model
@@ -105,8 +104,7 @@ fireBullet delta gameOptions space model =
       newBullet =
         { timeAlive = 0
         , angle = model.angle
-        , startPosition = model.position
-        , currentPosition = model.position
+        , position = model.position
         }
       newBullets = newBullet :: model.bullets
     in
@@ -152,4 +150,4 @@ drawBullet : Bullet -> Form
 drawBullet bullet =
   circle 2
     |> filled (rgb 255 255 255)
-    |> tileForm ((Vector2.getX bullet.currentPosition), (Vector2.getY bullet.currentPosition)) (1600, 800)
+    |> tileForm ((Vector2.getX bullet.position), (Vector2.getY bullet.position)) (1600, 800)

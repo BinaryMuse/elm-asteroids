@@ -79,7 +79,7 @@ movement delta gameOptions keys model =
   let
     keysY = max 0 (toFloat keys.y)
     heading = model.angle
-      |> getVectorFromAngle
+      |> angleToVector
     proposedVelocity = heading
       |> Vector2.scale (keysY * gameOptions.thrust)
       |> Vector2.add model.velocity
@@ -114,7 +114,7 @@ advanceBullet : Float -> GameOptions -> Bullet -> Bullet
 advanceBullet delta gameOptions bullet =
   let
     newTimeAlive = bullet.timeAlive + delta
-    vector = getVectorFromAngle bullet.angle
+    vector = angleToVector bullet.angle
     moved = Vector2.scale (gameOptions.bulletMovementRate * newTimeAlive) vector
     finalPos = Vector2.add bullet.startPosition moved
   in
@@ -142,8 +142,8 @@ fireBullet delta gameOptions space model =
   else
       { model | deltaSinceLastBullet = model.deltaSinceLastBullet + delta }
 
-getVectorFromAngle : Float -> Vec2
-getVectorFromAngle angle =
+angleToVector : Float -> Vec2
+angleToVector angle =
   let
     x = cos angle
     y = sin angle

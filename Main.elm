@@ -13,7 +13,7 @@ type alias GameOptions =
   { friction: Bool -- if true, ship stops immediately
   , thrust: Float -- how quickly the ship can increase momentum
   , maxSpeed: Float -- the maximum speed at which the ship can travel
-  , bulletFireRate: Float -- how quickly the gun can fire
+  , gunCooldownTime: Float -- how quickly the gun can fire
   , bulletTtl: Float -- how long bullets last
   , bulletMovementRate: Float -- how fast bulltes move
   , turnRate: Float -- how qickly the ship can turn
@@ -26,7 +26,7 @@ gameOptions =
     { friction = friction
     , thrust = if friction then 5 else 1
     , maxSpeed = 30
-    , bulletFireRate = 200
+    , gunCooldownTime = 200
     , bulletTtl = 3000
     , bulletMovementRate = 0.5
     , turnRate = 0.005
@@ -48,7 +48,7 @@ type alias Model =
   { angle: Float
   , position: Vec2
   , velocity: Vec2
-  , deltaSinceLastBullet: Float
+  , gunCooldownRemaining: Float
   , bullets: List (Bullet)
   }
 
@@ -57,7 +57,7 @@ model =
   { angle = 0
   , position = vec2 0 0
   , velocity = vec2 0 0
-  , deltaSinceLastBullet = gameOptions.bulletFireRate + 1
+  , gunCooldownRemaining = 0
   , bullets = []
   }
 
@@ -125,7 +125,7 @@ advanceBullet delta gameOptions bullet =
 
 fireBullet : Float -> GameOptions -> Bool -> Model -> Model
 fireBullet delta gameOptions space model =
-  if space && model.deltaSinceLastBullet + delta >= gameOptions.bulletFireRate then
+  if space && model.gunCooldownRemaining - delta <= 0 then
     let
       newBullet =
         { timeAlive = 0
@@ -137,10 +137,10 @@ fireBullet delta gameOptions space model =
     in
       { model |
         bullets = newBullets
-      , deltaSinceLastBullet = 0
+      , gunCooldownRemaining = gameOptions.gunCooldownTime
       }
   else
-      { model | deltaSinceLastBullet = model.deltaSinceLastBullet + delta }
+      { model | gunCooldownRemaining = max 0 (model.gunCooldownRemaining - delta) }
 
 angleToVector : Float -> Vec2
 angleToVector angle =

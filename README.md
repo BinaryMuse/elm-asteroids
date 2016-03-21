@@ -15,7 +15,7 @@ $ elm reactor
 
 and then open http://localhost:8000/Main.elm
 
-<kbd>↑</kbd> <kbd>↓</kbd>, <kbd>→</kbd>, <kbd>←</kbd> to move, <kbd>space</kbd> to shoot.
+<kbd>↑</kbd>, <kbd>→</kbd>, <kbd>←</kbd> to move, <kbd>space</kbd> to shoot.
 
 
 [elm]: http://elm-lang.org/install

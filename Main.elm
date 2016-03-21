@@ -16,7 +16,7 @@ type alias GameOptions =
   , bulletFireRate: Float -- how quickly the gun can fire
   , bulletTtl: Float -- how long bullets last
   , bulletMovementRate: Float -- how fast bulltes move
-  , turnRate: Float -- how qickly teh ship can turn
+  , turnRate: Float -- how qickly the ship can turn
   }
 
 gameOptions =

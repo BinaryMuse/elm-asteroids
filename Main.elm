@@ -11,7 +11,7 @@ import Text exposing (fromString)
 
 type alias GameOptions =
   { friction: Bool -- if true, ship stops immediately
-  , acceleration: Float -- how quickly the ship can increase momentum
+  , thrust: Float -- how quickly the ship can increase momentum
   , bulletFireRate: Float -- how quickly the gun can fire
   , bulletTtl: Float -- how long bullets last
   , bulletMovementRate: Float -- how fast bulltes move
@@ -23,7 +23,7 @@ gameOptions =
     friction = False
   in
     { friction = friction
-    , acceleration = if friction then 5 else 0.2
+    , thrust = if friction then 5 else 0.2
     , bulletFireRate = 200
     , bulletTtl = 3000
     , bulletMovementRate = 0.5
@@ -78,7 +78,7 @@ movement delta gameOptions keys model =
     keysY = max 0 (toFloat keys.y)
     newVelocity = model.angle
       |> getVectorFromAngle
-      |> Vector2.scale (keysY * gameOptions.acceleration)
+      |> Vector2.scale (keysY * gameOptions.thrust)
       |> Vector2.add model.velocity
     newPosition = model.position
       |> Vector2.add newVelocity

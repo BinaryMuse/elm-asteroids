@@ -1,13 +1,12 @@
 module Ship where
 
-import Color
 import Graphics.Collage exposing (..)
 import Graphics.Element exposing (..)
 import Keyboard
-import Text exposing (fromString)
 
-import Math.Vector2 as Vector2 exposing (vec2, Vec2)
+import Math.Vector2 as Vector2 exposing (Vec2, vec2, getX, getY)
 
+import Colors exposing (..)
 import GameConfig exposing (GameOptions, gameOptions)
 import Util exposing (angleToVector, wrapPosition, tileForm)
 
@@ -28,9 +27,6 @@ type alias Model =
   }
 
 type alias Update = (Float, Keys, Bool)
-
-black = (Color.rgb 0 0 0)
-white = (Color.rgb 255 255 255)
 
 model : Model
 model =
@@ -129,30 +125,15 @@ view (w, h) model =
       , polygon [(-10, 10), (20, 0), (-10, -10)]
         |> filled white
         |> rotate (radians model.angle)
-        |> tileForm ((Vector2.getX model.position), (Vector2.getY model.position)) (1600, 800)
+        |> tileForm ((getX model.position), (getY model.position)) (1600, 800)
       , List.map drawBullet model.bullets |> group
-      , scoreText model
-        |> moveY 350
       ]
-
-scoreText model =
-  let
-    lineStyle = { defaultLine |
-      color = white
-    , width = 1
-    }
-    t = Text.fromString "Score: 0"
-          |> Text.monospace
-          |> Text.height 30
-          |> Text.color white
-  in
-    outlinedText lineStyle t
 
 drawBullet : Bullet -> Form
 drawBullet bullet =
   circle 2
     |> filled white
-    |> tileForm ((Vector2.getX bullet.position), (Vector2.getY bullet.position)) (1600, 800)
+    |> tileForm ((getX bullet.position), (getY bullet.position)) (1600, 800)
 
 input : Signal Float -> Signal Update
 input clock =

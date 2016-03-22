@@ -4,6 +4,7 @@ import Time
 import Window
 
 import GameConfig exposing (GameOptions, gameOptions)
+import Score
 import Ship
 
 type alias Model =
@@ -24,9 +25,15 @@ update update model =
 
 view : (Int, Int) -> Model -> Element
 view (w, h) model =
-  collage w h [
-    toForm <| Ship.view (w, h) model.ship
-  ]
+  let
+    content = layers [
+      collage 1600 800 [
+        toForm <| Ship.view (w, h) model.ship
+      ]
+    , container 1600 800 (topRightAt (absolute 20) (absolute  20)) Score.view
+    ]
+  in
+    container w h middle content
 
 main : Signal Element
 main = Signal.map2 view Window.dimensions (Signal.foldp update model input)

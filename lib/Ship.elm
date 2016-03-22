@@ -1,8 +1,9 @@
 module Ship where
 
-import Color exposing (..)
+import Color
 import Graphics.Collage exposing (..)
 import Graphics.Element exposing (..)
+import Keyboard
 import Text exposing (fromString)
 
 import Math.Vector2 as Vector2 exposing (vec2, Vec2)
@@ -26,6 +27,11 @@ type alias Model =
   , bullets: List (Bullet)
   }
 
+type alias Update = (Float, Keys, Bool)
+
+black = (Color.rgb 0 0 0)
+white = (Color.rgb 255 255 255)
+
 model : Model
 model =
   { angle = 0
@@ -35,7 +41,7 @@ model =
   , bullets = []
   }
 
-update : (Float, Keys, Bool) -> Model -> Model
+update : Update -> Model -> Model
 update (delta, keys, space) model =
   model
     |> turning delta gameOptions keys
@@ -119,9 +125,9 @@ view (w, h) model =
   in
     collage w h
       [ rect 1600 800
-        |> filled (rgb 0 0 0)
+        |> filled black
       , polygon [(-10, 10), (20, 0), (-10, -10)]
-        |> filled (rgb 255 255 255)
+        |> filled white
         |> rotate (radians model.angle)
         |> tileForm ((Vector2.getX model.position), (Vector2.getY model.position)) (1600, 800)
       , List.map drawBullet model.bullets |> group
@@ -132,18 +138,22 @@ view (w, h) model =
 scoreText model =
   let
     lineStyle = { defaultLine |
-      color = (rgb 255 255 255)
+      color = white
     , width = 1
     }
     t = Text.fromString "Score: 0"
           |> Text.monospace
           |> Text.height 30
-          |> Text.color (rgb 255 255 255)
+          |> Text.color white
   in
     outlinedText lineStyle t
 
 drawBullet : Bullet -> Form
 drawBullet bullet =
   circle 2
-    |> filled (rgb 255 255 255)
+    |> filled white
     |> tileForm ((Vector2.getX bullet.position), (Vector2.getY bullet.position)) (1600, 800)
+
+input : Signal Float -> Signal Update
+input clock =
+  Signal.map3 (,,) clock Keyboard.arrows Keyboard.space

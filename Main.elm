@@ -1,20 +1,42 @@
-import Keyboard
-import Time exposing (..)
-import Window
+import Graphics.Collage exposing (..)
 import Graphics.Element exposing (..)
+import Time
+import Window
 
 import GameConfig exposing (GameOptions, gameOptions)
 import Ship
 
-main : Signal Element
-main = Signal.map2 Ship.view Window.dimensions (Signal.foldp Ship.update Ship.model input)
+type alias Model =
+  { ship: Ship.Model }
 
--- `input` is a Signal ...
-input : Signal (Float, Ship.Keys, Bool)
+type Update
+  = ShipUpdate Ship.Update
+
+model : Model
+model =
+  { ship = Ship.model }
+
+update : Update -> Model -> Model
+update update model =
+  case update of
+    ShipUpdate shipUpdate ->
+      { model | ship = Ship.update shipUpdate model.ship }
+
+view : (Int, Int) -> Model -> Element
+view (w, h) model =
+  collage w h [
+    toForm <| Ship.view (w, h) model.ship
+  ]
+
+main : Signal Element
+main = Signal.map2 view Window.dimensions (Signal.foldp update model input)
+
+input : Signal Update
 input =
   let
-    -- ... that updates every 33 ms ....
-    delta = (fps 30)
+    clock = (Time.fps 30)
+    signals = [
+      Signal.map ShipUpdate (Ship.input clock)
+    ]
   in
-    -- ... that provides a tuple of the time since last update and the Keyboard info
-    Signal.sampleOn delta (Signal.map3 (,,) delta Keyboard.arrows Keyboard.space)
+    Signal.sampleOn clock (Signal.mergeMany signals)

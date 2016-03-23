@@ -20,7 +20,7 @@ type Update
 model : Model
 model =
   { ship = Ship.model
-  , asteroids = []
+  , asteroids = Asteroids.generateModel 3
   }
 
 update : Update -> Model -> Model

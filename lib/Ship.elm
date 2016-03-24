@@ -3,12 +3,16 @@ module Ship where
 import Graphics.Collage exposing (..)
 import Graphics.Element exposing (..)
 import Keyboard
+import Time
 
 import Math.Vector2 as Vector2 exposing (Vec2, vec2, getX, getY)
 
 import Colors exposing (..)
 import GameConfig exposing (GameOptions, gameOptions)
+import GameTypes exposing (Tick, Input)
 import Util exposing (angleToVector, wrapPosition, tileForm)
+
+type Direction = Left | Right
 
 type alias Bullet =
   { timeAlive: Float -- how long since this bullet was fired
@@ -24,9 +28,9 @@ type alias Model =
   , velocity: Vec2
   , gunCooldownRemaining: Float
   , bullets: List (Bullet)
+  , turningDirection: Maybe (Direction)
+  , accelerating: Bool
   }
-
-type alias Update = (Float, Keys, Bool)
 
 model : Model
 model =
@@ -35,29 +39,64 @@ model =
   , velocity = vec2 0 0
   , gunCooldownRemaining = 0
   , bullets = []
+  , turningDirection = Nothing
+  , accelerating = False
   }
 
-update : Update -> Model -> Model
-update (delta, keys, space) model =
+update : Input -> Model -> Model
+update {x, y, space} model =
   model
-    |> turning delta gameOptions keys
-    |> movement delta gameOptions keys
-    |> bullets delta gameOptions space
+    |> turning gameOptions x
+    |> accelerating gameOptions y
+    |> firing gameOptions space
 
-turning : Float -> GameOptions -> Keys -> Model -> Model
-turning delta gameOptions keys model =
-  { model |
-    angle = model.angle - gameOptions.turnRate * delta * (toFloat keys.x)
-  }
+tick : Tick -> Model -> Model
+tick delta model =
+  model
+    |> movement delta gameOptions
+    |> bullets delta gameOptions
 
-movement : Float -> GameOptions -> Keys -> Model -> Model
-movement delta gameOptions keys model =
+turning : GameOptions -> Int -> Model -> Model
+turning gameOptions dir model =
+  if dir == 1 then
+    { model | turningDirection = Just Right }
+  else if dir == -1 then
+    { model | turningDirection = Just Left }
+  else
+    { model | turningDirection = Nothing }
+
+accelerating : GameOptions -> Int -> Model -> Model
+accelerating gameOptions y model =
+  if y == 1 then
+    { model | accelerating = True }
+  else
+    { model | accelerating = False }
+
+movement : Float -> GameOptions -> Model -> Model
+movement delta gameOptions model =
+  model
+    |> doTurn delta gameOptions
+    |> doMove delta gameOptions
+
+doTurn : Tick -> GameOptions -> Model -> Model
+doTurn delta gameOptions model =
   let
-    keysY = max 0 (toFloat keys.y)
+    multiplier = case model.turningDirection of
+      Just Left  -> -1
+      Just Right -> 1
+      Nothing    -> 0
+    angle = model.angle - gameOptions.turnRate * multiplier
+  in
+    { model | angle = angle }
+
+doMove : Tick -> GameOptions -> Model -> Model
+doMove delta gameOptions model =
+  let
+    multiplier = if model.accelerating then 1 else 0
     heading = model.angle
       |> angleToVector
     proposedVelocity = heading
-      |> Vector2.scale (keysY * gameOptions.thrust)
+      |> Vector2.scale (multiplier * gameOptions.thrust)
       |> Vector2.add model.velocity
     newVelocity = if (Vector2.length proposedVelocity) > gameOptions.maxSpeed then
         heading |> Vector2.scale gameOptions.maxSpeed
@@ -72,16 +111,21 @@ movement delta gameOptions keys model =
     , velocity = if gameOptions.friction then model.velocity else newVelocity
     }
 
-bullets : Float -> GameOptions -> Bool -> Model -> Model
-bullets delta gameOptions space model =
+firing : GameOptions -> Bool -> Model -> Model
+firing gameOptions space model =
+  model
+    |> fireBullet gameOptions space
+
+bullets : Float -> GameOptions -> Model -> Model
+bullets delta gameOptions model =
   model
     |> advanceBullets delta gameOptions
-    |> fireBullet delta gameOptions space
 
 advanceBullets : Float -> GameOptions -> Model -> Model
 advanceBullets delta gameOptions model =
   { model |
-    bullets = model.bullets
+    gunCooldownRemaining = max 0 (model.gunCooldownRemaining - delta)
+  , bullets = model.bullets
                 |> List.map (advanceBullet delta gameOptions)
                 |> List.filter (\b -> b.timeAlive <= gameOptions.bulletTtl)
   }
@@ -96,9 +140,9 @@ advanceBullet delta gameOptions bullet =
       |> Vector2.add bullet.position
   }
 
-fireBullet : Float -> GameOptions -> Bool -> Model -> Model
-fireBullet delta gameOptions space model =
-  if space && model.gunCooldownRemaining - delta <= 0 then
+fireBullet : GameOptions -> Bool -> Model -> Model
+fireBullet gameOptions space model =
+  if space && model.gunCooldownRemaining <= 0 then
     let
       bullet =
         { timeAlive = 0
@@ -111,7 +155,7 @@ fireBullet delta gameOptions space model =
       , gunCooldownRemaining = gameOptions.gunCooldownTime
       }
   else
-      { model | gunCooldownRemaining = max 0 (model.gunCooldownRemaining - delta) }
+    model
 
 view : (Int, Int) -> Model -> Element
 view (w, h) model =
@@ -135,6 +179,10 @@ drawBullet bullet =
     |> filled white
     |> tileForm ((getX bullet.position), (getY bullet.position)) (1600, 800)
 
-input : Signal Float -> Signal Update
-input clock =
-  Signal.map3 (,,) clock Keyboard.arrows Keyboard.space
+combineKeys : { x: Int, y: Int } -> Bool -> Input
+combineKeys {x,y} spc = { x = x, y = y, space = spc }
+
+input : Signal Input
+input =
+  Signal.map2 combineKeys Keyboard.arrows Keyboard.space
+    |> Signal.sampleOn (Time.fps 30)

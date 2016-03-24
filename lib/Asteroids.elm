@@ -2,7 +2,7 @@ module Asteroids where
 
 import Graphics.Collage exposing (..)
 import Graphics.Element exposing (..)
-import Random exposing (float, generate, initialSeed)
+import Random exposing (Seed, float, generate, initialSeed)
 
 import Colors exposing (..)
 import GameConfig exposing (GameOptions, gameOptions)
@@ -17,22 +17,33 @@ type alias Asteroid =
   , size: Size
   }
 
-type alias Model = List (Asteroid)
+type alias Model =
+  { seed: Seed
+  , asteroids: List (Asteroid) }
 
 type alias Update = Float
 
-generateModel count =
-  List.repeat count (generateAsteroid)
+-- floatGenerator = Signal.foldp \nextSeed seed ->  state Signal.Signal a
 
-generateAsteroid =
+generateModel : Int -> Model
+generateModel count =
+  { seed = initialSeed 5
+  , asteroids = [(buildAsteroid)] }
+  -- let
+  --   xGen = float -800 800
+  --   yGen = float -400 400
+  --   angleGen = float 0 (22 / 7)
+  -- in
+  --   List.repeat count (generateAsteroid (xGen, yGen, angleGen))
+
+buildAsteroid =
+  { angle = 0.3, position = (vec2 100 100), size = Large}
+
+generateAsteroid (xGen, yGen, angleGen) =
   let
-    rndX = float -800 800
-    rndY = float -400 400
-    rndAngle = float -400 400
-    -- rndAngle = float 0 3.14159
-    (x, _) = generate rndX (initialSeed 5)
-    (y, _) = generate rndY (initialSeed 5)
-    (angle, _) = generate rndAngle (initialSeed 5)
+    (x, _) = generate xGen (initialSeed 5)
+    (y, _) = generate yGen (initialSeed 5)
+    (angle, _) = generate angleGen (initialSeed 5)
   in
     { angle = angle
     , position = vec2 x y
@@ -41,7 +52,10 @@ generateAsteroid =
 
 update : Float -> Model -> Model
 update delta model =
-  List.map (updateSingle delta) model
+  { model | asteroids = List.map (updateSingle delta) model.asteroids }
+
+tick delta model =
+  { model | asteroids = List.map (updateSingle delta) model.asteroids }
 
 updateSingle : Float -> Asteroid -> Asteroid
 updateSingle delta asteroid =
@@ -50,14 +64,22 @@ updateSingle delta asteroid =
 
 movement : Float -> GameOptions -> Asteroid -> Asteroid
 movement delta gameOptions asteroid =
-  asteroid
+  let
+    position' = asteroid.angle
+      |> angleToVector
+      |> Vector2.scale 1
+      |> Vector2.add asteroid.position
+      |> wrapPosition
+  in
+    { asteroid | position = position' }
 
 view : (Int, Int) -> Model -> Element
 view (w, h) model =
   collage w h
-    [ List.map drawAsteroid model |> group
+    [ List.map drawAsteroid model.asteroids |> group
     ]
 
+drawAsteroid : Asteroid -> Form
 drawAsteroid asteroid =
   circle 20
     |> filled white
@@ -65,4 +87,4 @@ drawAsteroid asteroid =
 
 input : Signal Float -> Signal Update
 input clock =
-  Signal.map (\x -> x) clock
+  clock

@@ -15,10 +15,10 @@ gameOptions =
     friction = False
   in
     { friction = friction
-    , thrust = if friction then 5 else 1
-    , maxSpeed = 30
+    , thrust = if friction then 10 else 1.25 -- velocity builds when friction is off
+    , maxSpeed = 25
     , gunCooldownTime = 200
-    , bulletTtl = 3000
+    , bulletTtl = 2000
     , bulletMovementRate = 0.5
-    , turnRate = 0.005
+    , turnRate = 0.2
     }

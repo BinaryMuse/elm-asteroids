@@ -15,12 +15,14 @@ import Ship
 type alias Model =
   { ship: Ship.Model
   , asteroids: Asteroids.Model
+  , score: Score.Model
   }
 
 model : Model
 model =
   { ship = Ship.model
   , asteroids = Asteroids.generateModel 3
+  , score = Score.model
   }
 
 update : GameTypes.Update -> Model -> Model
@@ -29,7 +31,8 @@ update update model =
     GameTypes.TickUpdate delta ->
       { model |
         ship = Ship.tick delta model.ship
-      , asteroids = Asteroids.tick delta model.asteroids }
+      , asteroids = Asteroids.tick delta model.asteroids
+      , score = Score.tick delta model.score }
     GameTypes.InputUpdate shipUpdate ->
       { model | ship = Ship.update shipUpdate model.ship }
 
@@ -41,7 +44,7 @@ view (w, h) model =
         toForm <| Ship.view (w, h) model.ship
       , toForm <| Asteroids.view (w, h) model.asteroids
       ]
-    , container 1600 800 (topRightAt (absolute 20) (absolute  20)) Score.view
+    , container 1600 800 (topRightAt (absolute 20) (absolute  20)) (Score.view model.score)
     ]
   in
     container w h middle content

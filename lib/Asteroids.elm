@@ -37,7 +37,7 @@ generateModel count =
   --   List.repeat count (generateAsteroid (xGen, yGen, angleGen))
 
 buildAsteroid =
-  { angle = 0.3, position = (vec2 100 100), size = Large}
+  { angle = 0.3, position = (vec2 100 100), size = Large }
 
 generateAsteroid (xGen, yGen, angleGen) =
   let
